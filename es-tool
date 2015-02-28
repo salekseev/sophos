@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import argparse
 import ipaddr
@@ -95,7 +95,7 @@ def get_node_stats():
     except KeyError:
         pass
     return []
-
+    
             
 def jsonpipe(obj, pathsep='.', path=()):
 
@@ -191,16 +191,16 @@ def jsonpipe(obj, pathsep='.', path=()):
     """
 
     def output(string):
-        return pathsep + pathsep.join(path) + "\t" + string
+        return pathsep + pathsep.join(path) + "\t" + string + "\t" + str(int(time.time()))
 
     if is_value(obj):
         yield output(simplejson.dumps(obj))
         raise StopIteration # Stop the generator immediately.
     elif isinstance(obj, dict):
-        yield output('{}')
+        #yield output('{}')
         iterator = obj.iteritems()
     elif hasattr(obj, '__iter__'):
-        yield output('[]')
+        #yield output('[]')
         iterator = enumerate(obj)
     else:
         raise TypeError("Unsupported type for jsonpipe output: %r" %
@@ -218,85 +218,6 @@ def jsonpipe(obj, pathsep='.', path=()):
 
         for line in jsonpipe(value, pathsep=pathsep, path=path + (key,)):
             yield line
-
-
-def jsonunpipe(lines, pathsep='.', discard='',
-               decoder=simplejson._default_decoder):
-
-    """
-    Parse a stream of jsonpipe output back into a JSON object.
-
-        >>> def unpipe(s): # Shim for easier demonstration.
-        ...     print repr(jsonunpipe(s.strip().splitlines()))
-
-    Works as expected for simple JSON values::
-
-        >>> unpipe('/\t"abc"')
-        'abc'
-        >>> unpipe('/\t123')
-        123
-        >>> unpipe('/\t0.25')
-        0.25
-        >>> unpipe('/\tnull')
-        None
-        >>> unpipe('/\ttrue')
-        True
-        >>> unpipe('/\tfalse')
-        False
-
-    And likewise for more complex objects::
-
-        >>> unpipe('''
-        ... /\t{}
-        ... /a\t1
-        ... /b\t2''')
-        {'a': 1, 'b': 2}
-
-        >>> unpipe('''
-        ... /\t[]
-        ... /0\t{}
-        ... /0/a\t[]
-        ... /0/a/0\t{}
-        ... /0/a/0/b\t{}
-        ... /0/a/0/b/c\t[]
-        ... /0/a/0/b/c/0\t"foo"''')
-        [{'a': [{'b': {'c': ['foo']}}]}]
-
-    Any level in the path left unspecified will be assumed to be an object::
-
-        >>> unpipe('''
-        ... /a/b/c\t123''')
-        {'a': {'b': {'c': 123}}}
-    """
-
-    def parse_line(line):
-        path, json = line.rstrip().split('\t')
-        return path.split(pathsep)[1:], decoder.decode(json)
-
-    def getitem(obj, index):
-        if isinstance(obj, (list, tuple)):
-            return obj[int(index)]
-        # All non-existent keys are assumed to be an object.
-        if index not in obj:
-            obj[index] = decoder.decode('{}')
-        return obj[index]
-
-    def setitem(obj, index, value):
-        if isinstance(obj, list):
-            index = int(index)
-            if len(obj) == index:
-                obj.append(value)
-                return
-        obj[index] = value
-
-    output = decoder.decode('{}')
-    for line in lines:
-        path, obj = parse_line(line)
-        if path == ['']:
-            output = obj
-            continue
-        setitem(reduce(getitem, path[:-1], output), path[-1], obj)
-    return output
 
 
 def to_str(obj):
@@ -484,7 +405,7 @@ commands = {
     "start-replication": es_start_replication,
     "stop-replication": es_stop_replication,
     "unban-node": es_unban_node,
-    "dump-node-stats": es_dump_node_stats,
+    "metrics-nodes": es_dump_node_stats,
     "status": lambda: '\n'.join(cluster_status()),
 }
 
