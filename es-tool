@@ -86,17 +86,17 @@ def get_node_type(node):
             return "_host"
 
 
-def get_node_stats():
+def get_node_stats(node_id=''):
     es = Elasticsearch(args.server)
     nodes = NodesClient(es)
-    res = nodes.stats()
+    res = nodes.stats(node_id)
     try:
         return res
     except KeyError:
         pass
     return []
-    
-            
+
+
 def jsonpipe(obj, pathsep='.', path=()):
 
     """
@@ -397,6 +397,13 @@ def es_dump_node_stats():
     return os.EX_OK
 
 
+def es_dump_node_stats_local():
+    node_stats = get_node_stats(node_id='_local')
+    for line in jsonpipe(node_stats):
+        print line
+    return os.EX_OK
+
+
 # And register them here
 commands = {
     "ban-node": es_ban_node,
@@ -405,7 +412,8 @@ commands = {
     "start-replication": es_start_replication,
     "stop-replication": es_stop_replication,
     "unban-node": es_unban_node,
-    "metrics-nodes": es_dump_node_stats,
+    "metrics": es_dump_node_stats,
+    "metrics-local": es_dump_node_stats_local,
     "status": lambda: '\n'.join(cluster_status()),
 }
 
